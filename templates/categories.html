@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Категории{% endblock %}
+{% block content %}
+<h1>Все категории</h1>
+<ul>
+  {% for c in categories %}
+    <li><a href="{{ url_for('category', category_id=c.id) }}">{{ c.name }}</a> ({{ c.posts|length }})</li>
+  {% else %}
+    <li>Категорий пока нет.</li>
+  {% endfor %}
+</ul>
+{% endblock %}

@@ -1,0 +1,12 @@
+
+{% extends "base.html" %}
+{% block title %}Комментарии к посту {{ post.title }}{% endblock %}
+{% block content %}
+    <h1>Все комментарии</h1>
+    {% for comment in post.comments %}
+        <div class="post">
+            <p>{{ comment.text }}</p>
+        </div>
+    {% endfor %}
+    <a href="{{ url_for('show_post', post_id=post.id) }}">Назад к посту</a>
+{% endblock %}
