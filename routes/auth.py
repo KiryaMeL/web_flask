@@ -1,6 +1,6 @@
 # routes/auth.py
 from flask import Blueprint, request, jsonify
-from models import db, User
+from models import db, User, Role
 from flask_jwt_extended import (
     create_access_token,
     create_refresh_token,
@@ -9,6 +9,8 @@ from flask_jwt_extended import (
     verify_jwt_in_request
 )
 from utils.validators import validate_user_data
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from models import ROLE_COMMENTER, ROLE_WRITER, ROLE_ADMIN
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -29,11 +31,32 @@ def register():
     if User.query.filter_by(email=data['email']).first():
         return jsonify({'error': 'Email already exists'}), 400
 
+
+
     try:
+        # Создание пользователя
         # Создание пользователя
         user = User(username=data['username'], email=data['email'])
         user.set_password(data['password'])
 
+        # Проверяем, есть ли роль "commenter"
+        default_role = Role.query.filter_by(name="commenter").first()
+
+        if not default_role:
+            # Если нет, создаём все роли
+            from models import ROLE_COMMENTER, ROLE_WRITER, ROLE_ADMIN
+            for r in (ROLE_COMMENTER, ROLE_WRITER, ROLE_ADMIN):
+                if not Role.query.filter_by(name=r).first():
+                    db.session.add(Role(name=r))
+            db.session.commit()  # сохраняем роли
+
+            # ещё раз получаем роль "commenter", теперь она точно есть
+            default_role = Role.query.filter_by(name="commenter").first()
+
+        # Назначаем пользователю роль
+        user.role = default_role
+
+        # Сохраняем пользователя
         db.session.add(user)
         db.session.commit()
 
@@ -106,3 +129,44 @@ def get_profile():
     user = User.query.get(current_user_id)
 
     return jsonify(user.to_dict())
+
+
+@auth_bp.route("/set_role", methods=["POST"])
+@jwt_required()
+def set_role():
+    """
+    Назначить пользователю роль.
+    Доступ: только admin.
+    Body: { "user_id": 123, "role": "writer" }
+    """
+    # кто делает запрос
+    current_user = User.query.get_or_404(int(get_jwt_identity()))
+    if not current_user.is_admin():
+        return jsonify({"error": "Access denied"}), 403
+
+    data = request.get_json() or {}
+    user_id = data.get("user_id")
+    role_name = (data.get("role") or "").strip().lower()
+
+    if not user_id or role_name not in {ROLE_COMMENTER, ROLE_WRITER, ROLE_ADMIN}:
+        return jsonify({
+            "error": "Bad request",
+            "message": f"role must be one of: {ROLE_COMMENTER}, {ROLE_WRITER}, {ROLE_ADMIN}"
+        }), 400
+
+    user = User.query.get_or_404(int(user_id))
+    role = Role.query.filter_by(name=role_name).first()
+    if not role:
+        # на случай пустой таблицы – создадим дефолтные роли
+        for r in (ROLE_COMMENTER, ROLE_WRITER, ROLE_ADMIN):
+            Role.query.filter_by(name=r).first() or db.session.add(Role(name=r))
+        db.session.commit()
+        role = Role.query.filter_by(name=role_name).first()
+
+    user.role = role
+    db.session.commit()
+
+    return jsonify({
+        "message": "Role updated",
+        "user": user.to_dict()
+    }), 200

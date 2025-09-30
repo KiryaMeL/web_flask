@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from models import db, Post
+from models import db, Post, User
 from sqlalchemy.exc import IntegrityError
 from utils.validators import validate_post_data
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -86,6 +86,11 @@ def create_post():
     current_user_id = int(get_jwt_identity())
     data = request.get_json()
 
+    # Проверка на то что есть права на создание
+    user = User.query.get(int(get_jwt_identity()))
+    if not user or not user.can_write():
+        return jsonify({"error": "Access denied"}), 403
+
     # Валидируем данные
     is_valid, errors = validate_post_data(data)
     if not is_valid:
@@ -96,7 +101,8 @@ def create_post():
         new_post = Post(
             title=data['title'],
             content=data['content'],
-            user_id=current_user_id
+            user_id=current_user_id,
+            category_id = data.get("category_id")
         )
         db.session.add(new_post)
         db.session.commit()
@@ -126,6 +132,11 @@ def update_post(post_id):
     """
     current_user_id = int(get_jwt_identity())
     post = Post.query.get_or_404(post_id)
+
+    # Проверка на то что есть права на создание
+    user = User.query.get(int(get_jwt_identity()))
+    if not user or not user.can_write():
+        return jsonify({"error": "Access denied"}), 403
 
     # Проверка прав доступа
     if post.user_id != current_user_id:
@@ -158,6 +169,11 @@ def delete_post(post_id):
     """
     current_user_id = int(get_jwt_identity())
     post = Post.query.get_or_404(post_id)
+
+    # Проверка на то что есть права на создание
+    user = User.query.get(int(get_jwt_identity()))
+    if not user or not user.can_write():
+        return jsonify({"error": "Access denied"}), 403
 
     # Проверка прав доступа
     if post.user_id != current_user_id:
