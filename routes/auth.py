@@ -70,6 +70,7 @@ def register():
         }), 201
 
     except Exception as e:
+        print(e)
         db.session.rollback()
         return jsonify({'error': 'Registration failed'}), 500
 

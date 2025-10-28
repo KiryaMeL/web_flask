@@ -4,7 +4,6 @@ from flask_migrate import Migrate
 from config import Config
 from models import db
 from routes.posts import posts_bp
-from routes.comments import comments_bp
 from routes.auth import auth_bp
 from routes.categories import categories_bp
 from routes.comments import comments_bp

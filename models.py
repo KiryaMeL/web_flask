@@ -51,7 +51,7 @@ class User(db.Model):
 
     def can_comment(self): return self.role and self.role.name in [ROLE_COMMENTER, ROLE_WRITER, ROLE_ADMIN]
     def can_write(self): return self.role and self.role.name in [ROLE_WRITER, ROLE_ADMIN]
-    def is_admin(self): return self.role and self.role.name == ROLE_ADMIN
+    def  is_admin(self): return self.role and self.role.name == ROLE_ADMIN
 
     def to_dict(self):
         return {
@@ -72,18 +72,23 @@ class Category(db.Model):
     def to_dict(self):
         return {
             "id": self.id,
-            "name": self.name
+            "name": self.name,
+            "posts_count": len(self.posts) if self.posts else 0
         }
+
 
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False)
     content = db.Column(db.Text, nullable=False)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
+    updated_at = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
 
-    category = db.relationship("Category", back_populates="posts")
+    # Исправленная привязка к категории
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
-    comments = db.relationship('Comment', backref='post', lazy=True)
+    category = db.relationship("Category", back_populates="posts")
+
+    comments = db.relationship('Comment', backref='post', lazy=True, cascade="all, delete-orphan")
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
     def to_dict(self):
@@ -92,11 +97,13 @@ class Post(db.Model):
             'title': self.title,
             'content': self.content,
             'created_at': self.created_at.isoformat(),
+            'updated_at': self.updated_at.isoformat() if self.updated_at else self.created_at.isoformat(),
             'comments_count': len(self.comments),
             'author': self.author.username if self.author else None,
             'user_id': self.user_id,
             "author_role": self.author.role.name if self.author and self.author.role else None,
-            "category": self.category.name if self.category else None
+            "category_id": self.category_id,
+            "category_name": self.category.name if self.category else None
         }
 
 

@@ -1,0 +1,13 @@
+blinker
+click
+Flask
+Flask-SQLAlchemy
+itsdangerous
+Jinja2
+MarkupSafe
+SQLAlchemy
+typing_extensions
+Werkzeug
+Flask-JWT-Extended
+Flask-Migrate
+alembic

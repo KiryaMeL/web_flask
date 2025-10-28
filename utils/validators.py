@@ -22,6 +22,7 @@ def validate_post_data(data):
     return len(errors) == 0, errors
 
 
+
 def validate_comment_data(data):
     """
     Валидация данных для создания комментария
