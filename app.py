@@ -7,10 +7,15 @@ from routes.posts import posts_bp
 from routes.auth import auth_bp
 from routes.categories import categories_bp
 from routes.comments import comments_bp
+from flask_cors import CORS
+
+
 
 def create_app():
     app = Flask(__name__)
+    CORS(app, resources={r"/api/*": {"origins": ["http://localhost:5173", "http://localhost:5000"]}}, supports_credentials=True)
     app.config.from_object(Config)
+    app.url_map.strict_slashes = False
 
     # Инициализация JWT
     jwt = JWTManager(app)
@@ -68,4 +73,4 @@ def create_app():
 
 if __name__ == '__main__':
     app = create_app()
-    app.run(debug=True, port=8088)
+    app.run(debug=True, port=5000)

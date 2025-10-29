@@ -171,3 +171,30 @@ def set_role():
         "message": "Role updated",
         "user": user.to_dict()
     }), 200
+
+
+@auth_bp.route('/users', methods=['GET'])
+@jwt_required()
+def list_users():
+    """Список пользователей (только админ), с фильтром и пагинацией"""
+    current_user = User.query.get_or_404(int(get_jwt_identity()))
+    if not current_user.is_admin():
+        return jsonify({"error": "Access denied"}), 403
+
+    q = (request.args.get('q') or '').strip()
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)
+
+    query = User.query
+    if q:
+        query = query.filter(db.or_(User.username.ilike(f'%{q}%'), User.email.ilike(f'%{q}%')))
+    query = query.order_by(db.desc(User.created_at))
+
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    users = [u.to_dict() for u in pagination.items]
+    return jsonify({
+        "users": users,
+        "total": pagination.total,
+        "pages": pagination.pages,
+        "current_page": page
+    })
