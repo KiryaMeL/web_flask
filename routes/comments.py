@@ -67,7 +67,7 @@ def delete_comment(comment_id):
 @jwt_required()
 def update_comment(comment_id):
     """
-    Редактирование комментария — доступно автору, admin и writer
+    Редактирование комментария — доступно автору, admin и writer fs
     """
     data = request.get_json() or {}
     new_text = (data.get('text') or '').strip()
